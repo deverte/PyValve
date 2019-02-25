@@ -1,0 +1,14 @@
+Action;Type;Pressure;Duration;Priority
+repeat;10;;;
+repeat;1;;;
+repeat;12;;;
+repeat;13;;;
+01;;;0:00:05;
+02;;;0:05:00;
+03;;;0:03:00;
+repeat;2;;;
+11;;;0:05:00;
+repeat;3;;;
+21;;;0:05:00;
+22;;;0:05:00;
+repeat;4;;;

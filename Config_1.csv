@@ -1,0 +1,7 @@
+Action;Type;Pressure;Duration;Priority
+delay;;;0:02:00;
+repeat;1;;;
+pump_power_on;;;0:00:05;
+camera_vacuum;;;0:05:00;
+atmosphere_into_camera;;;0:03:00;
+repeat;6;;;
