@@ -1,6 +1,46 @@
 import os
 import pandas as pd
 
+"""
+Основные функции для работы с входными файлами и создания выходных файлов:
+настройки по умолчанию, чтение файла настроек, чтение плана, чтение команд.
+"""
+
+def default_settings():
+    """
+    Возвращает настройки по умолчанию. Тип - pandas.DataFrame.
+    """
+    settings = {'Settings': ['SERVER',
+                             'ip',
+                             'on',
+                             'off',
+                             'INPUT_FILES',
+                             'plan',
+                             'commands',
+                             'OUTPUT FILES',
+                             'protocol',
+                             'pressures',
+                             'RECORDING',
+                             'sample rate',
+                             'time precision',
+                             'pressure precision'],
+                'Values': [float('nan'),
+                           'http://192.168.1.54/',
+                           '1',
+                           '0',
+                           float('nan'),
+                           'plan.csv',
+                           'commands.csv',
+                           float('nan'),
+                           'protocol.csv',
+                           'pressures.csv',
+                           float('nan'),
+                           '0.25',
+                           '3',
+                           '3']}
+    settings = pd.DataFrame.from_dict(settings)
+    return settings
+
 def read_settings(settings_name):
     """
     Считывает файл с настройками.
@@ -82,38 +122,3 @@ def read_commands(commands_name):
                           dtype={'Command': str, 'Signal': str, 'Modifier': str})
 
     return commands
-
-def default_settings():
-    """
-    Возвращает настройки по умолчанию. Тип - pandas.DataFrame.
-    """
-    settings = {'Settings': ['SERVER',
-                             'ip',
-                             'on',
-                             'off',
-                             'INPUT_FILES',
-                             'plan',
-                             'commands',
-                             'OUTPUT FILES',
-                             'protocol',
-                             'pressures',
-                             'RECORDING',
-                             'sample rate',
-                             'time precision',
-                             'pressure precision'],
-                'Values': [float('nan'),
-                           'http://192.168.1.54/',
-                           '1',
-                           '0',
-                           float('nan'),
-                           'plan.csv',
-                           'commands.csv',
-                           float('nan'),
-                           'protocol.csv',
-                           'pressures.csv',
-                           float('nan'),
-                           '0.25',
-                           '3',
-                           '3']}
-    settings = pd.DataFrame.from_dict(settings)
-    return settings

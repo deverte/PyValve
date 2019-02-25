@@ -14,13 +14,13 @@ import client
 
 """
 TODO:
-1. Выполнить рефакторинг (изменить названия переменных и функций для лучшей
+1. Добавить подробное описание на GitHub.
+2. Выполнить рефакторинг (изменить названия переменных и функций для лучшей
 читаемости кода).
-2. Учесть (!).
-3. Обработать исключения.
-4. Добавить проверку доступа к http-серверу.
-5. Сделать графический интерфейс.
-6. Добавить подробное описание на GitHub.
+3. Учесть (!).
+4. Обработать исключения.
+5. Добавить проверку доступа к http-серверу.
+6. Сделать графический интерфейс.
 """
 
 def loop(settings, timer, time_begin, plan, commands, data, stage):
@@ -56,48 +56,6 @@ def loop(settings, timer, time_begin, plan, commands, data, stage):
         t = Timer(float(settings.loc["sample rate"][0]), loop, args=arguments)
         t.start()
 
-def process(settings, signal, commands):
-    """
-    Обработка команд.
-
-    Параметры:
-    settings - файл с настройками. Тип - pandas.DataFrame.
-    signal - текущий этап. Тип - pandas.DataFrame.
-    commands - DataFrame с командами. Тип - pandas.DataFrame.
-    """
-    on = settings.loc["on"][0]
-    off = settings.loc["off"][0]
-    # ЗАКРЫТИЕ ВСЕХ РЕЛЕ
-    client.send(settings.loc["ip"][0], client.command("1" * 10, off))
-
-    # Строка, посылаемая серверу в качестве сигнала
-    signal_str = ""
-    # Проверка наличия команды из файла плана в файле с командами
-    if signal["Action"] in commands.index:
-        # ФОРМИРОВАНИЕ СИГНАЛА
-        # Получение строки-сигнала в бинарном виде (тип str)
-        signal_str = commands.loc[signal["Action"]]["Signal"]
-
-        # Добавление модификаторов (медленный поток, проточная система и т.д.)
-        for cmd in commands:
-            # Если команда - модификатор и присутствует в файле плана, то
-            # бинарно сложить строку-сигнал и модификатор
-            if cmd["Modifier"] == "Yes":
-                if cmd in signal["Type"]:
-                    # Преобразование строки-сигнала в int
-                    signal_int = int(signal_str, 2)
-                    # Преобразование строки-модификатора в int
-                    modifier_int = int(cmd["Signal"], 2)
-                    # Бинарное сложение
-                    signal_int = bin(signal_int | modifier_int)[2:]
-                    # Добавление нулей в начало (для корректного формирования
-                    # сигнала)
-                    zeros = "0" * (len(signal_str) - len(signal_int))
-                    signal_int = zeros + signal_int
-
-        # ОТПРАВКА СИГНАЛА НА СЕРВЕР
-        client.send(settings.loc["ip"][0], client.command(signal_str, on))
-
 def sequence(settings, timer, plan, commands, stage):
     """
     Цикл программы по выполнению последовательности команд.
@@ -116,7 +74,7 @@ def sequence(settings, timer, plan, commands, stage):
     # цикл
     if stage < len(plan):
         # Выполнить обработку команд
-        process(settings, plan.iloc[stage], commands)
+        client.process(settings, plan.iloc[stage], commands)
         # Начать этап
         duration = plan.iloc[current_stage]["Duration"]
         arguments = [settings, timer, plan, commands, stage + 1]
