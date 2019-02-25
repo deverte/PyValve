@@ -10,46 +10,27 @@ from threading import Timer
 TODO:
 1. Выполнить рефакторинг (изменить названия переменных и функций для лучшей
 читаемости кода).
-2. Поместить КОНСТАНТЫ в файл конфигурации.
-3. Разделить файл на модули.
-4. Учесть (!).
-5. Обработать исключения.
-6. Добавить проверку доступа к http-серверу.
-7. Сделать графический интерфейс.
-8. Добавить репозиторий на GitHub с подробным описанием.
+2. Разделить файл на модули.
+3. Учесть (!).
+4. Обработать исключения.
+5. Добавить проверку доступа к http-серверу.
+6. Сделать графический интерфейс.
+7. Добавить подробное описание на GitHub.
 """
-
-PLAN_NAME = "plan.csv"
-COMMANDS_NAME = "commands.csv"
-
-PROTOCOL_NAME = "protocol.csv"
-PRESSURES_NAME = "pressures.csv"
-
-TIME_BEGIN = time.time()
-
-IP = "http://192.168.1.54"
-
-ON = "1"
-OFF = "0"
-
-SAMPLE_RATE = 0.25
-
-TIME_PRECISION = 3
-PRESSURE_PRECISION = 3
 
 def read_plan(plan_name):
     """
-    Считывает файл конфигурации и преобразует его в развернутый вид. То есть,
+    Считывает файл плана и преобразует его в развернутый вид. То есть,
     если есть повторения (repeat), то разворачивает тело данного цикла в
     последовательность команд заданное количество раз.
 
     Параметры:
-    plan_name - имя файла конфигурации. Тип - string.
+    plan_name - имя файла плана. Тип - string.
 
-    Возвращает DataFrame файла конфигурации в развернутом виде.
+    Возвращает DataFrame файла плана в развернутом виде.
     Тип - pandas.DataFrame.
     """
-    # Получение пути для файла конфигурации (временная проблема с путями)
+    # Получение пути для файла плана (временная проблема с путями)
     # (!) Добавить проверку существования файла
     #plan_path = os.path.join(os.getcwd(), "plan.csv")
     #plan_path = os.path.join(os.getcwd(), "pyvm", plan_name)
@@ -73,20 +54,20 @@ def read_plan(plan_name):
 
     return expanded_plan
 
-def read_commands(COMMANDS_NAME):
+def read_commands(commands_name):
     """
     Считывает файл с командами.
 
     Параметры:
-    COMMANDS_NAME - имя файла с командами. Тип - string.
+    commands_name - имя файла с командами. Тип - string.
 
     Возвращает DataFrame с командами. Тип - pandas.DataFrame.
     """
-    # Получение пути для файла конфигурации (временная проблема с путями)
+    # Получение пути для файла команд (временная проблема с путями)
     # (!) Добавить проверку существования файла
     #plan_path = os.path.join(os.getcwd(), "plan.csv")
-    #comands_path = os.path.join(os.getcwd(), "pyvm", COMMANDS_NAME)
-    comands_path = os.path.join(os.getcwd(), COMMANDS_NAME)
+    #commands_path = os.path.join(os.getcwd(), "pyvm", commands_name)
+    commands_path = os.path.join(os.getcwd(), commands_name)
 
     # Считывание файла с командами
     # (!) Возможно, нужно будет изменить разделитель (sep) на ";"
@@ -95,35 +76,99 @@ def read_commands(COMMANDS_NAME):
 
     return commands
 
-def send(command):
+def read_settings(settings_name):
+    """
+    Считывает файл с настройками.
+
+    Параметры:
+    settings_name - имя файла с настройками. Тип - string.
+
+    Возвращает DataFrame с настройками. Тип - pandas.DataFrame.
+    """
+    # Получение пути для файла настроек (временная проблема с путями)
+    # (!) Добавить проверку существования файла
+    #settings_path = os.path.join(os.getcwd(), "plan.csv")
+    settings_path = os.path.join(os.getcwd(), "pyvm", settings_name)
+    #settings_path = os.path.join(os.getcwd(), settings_name)
+
+    # Считывание файла с командами
+    # (!) Возможно, нужно будет изменить разделитель (sep) на ";"
+    settings = pd.read_csv(settings_path, sep=",", index_col=0,
+                          dtype={'Settings': str, 'Values': str})
+
+    return settings
+
+def default_settings():
+    """
+    Возвращает настройки по умолчанию. Тип - pandas.DataFrame.
+    """
+    settings = {'Settings': ['SERVER',
+                             'ip',
+                             'on',
+                             'off',
+                             'INPUT_FILES',
+                             'plan',
+                             'commands',
+                             'OUTPUT FILES',
+                             'protocol',
+                             'pressures',
+                             'RECORDING',
+                             'sample rate',
+                             'time precision',
+                             'pressure precision'],
+                'Values': [float('nan'),
+                           'http://192.168.1.54/',
+                           '1',
+                           '0',
+                           float('nan'),
+                           'plan.csv',
+                           'commands.csv',
+                           float('nan'),
+                           'protocol.csv',
+                           'pressures.csv',
+                           float('nan'),
+                           '0.25',
+                           '3',
+                           '3']}
+    settings = pd.DataFrame.from_dict(settings)
+    return settings
+
+def send(ip, command):
     """
     Посылает команду http серверу.
 
     Параметры:
+    ip - IP-адрес сервера. Тип - str.
     command - команда, посылаемая серверу. Тип - str.
     """
     # (!) Добавить обработку ошибок подключения и т.д.
-    response = requests.get("/".join(IP, command))
+    response = requests.get("/".join(ip, command))
 
-def command(signal, state=ON):
+def command(signal, state):
     """
-    Преобразует команду из конфига в команду, понятную серверу.
+    Преобразует команду из плана в команду, понятную серверу.
 
     Параметры:
     signal - строка-сигнал в бинарном виде. Тип - str.
+    state - состояние для команды (вкл/выкл [on/off]). Значения "1" и "0".
+    Тип - str.
 
     Возвращает команду, понятную серверу - тип: String.
     """
     return "_".join("/", signal, state, "SETRELAY")
 
-def get_info():
+def get_info(settings, time_begin):
     """
     Считывает показания датчиков с http сервера (html страницы).
+
+    Параметры:
+    settings - файл с настройками. Тип - pandas.DataFrame.
+    time_begin - время начала исполнения программы. Тип - float.
 
     Возвращает время и показания датчиков - тип pandas.DataFrame.
     """
     # Получение страницы с данными
-    #response = requests.get(IP)
+    #response = requests.get(settings.loc["ip"][0])
     #file = response.content
     file = open("/home/deverte/Projects/Sorption/Automation/deverte/192.168.1.54.html", "r")
 
@@ -135,28 +180,32 @@ def get_info():
     df = pd.DataFrame(columns=["Time", "0", "1", "2", "3", "4", "5"])
 
     # Создание списка из времени и давлений
-    time_format = "{0:." + str(TIME_PRECISION) + "f}"
-    info = [time_format.format(time.time()  - TIME_BEGIN)]
-    pressure_format = "{0:." + str(PRESSURE_PRECISION) + "f}"
+    time_precision = int(settings.loc["time precision"][0])
+    time_format = "{0:." + str(time_precision) + "f}"
+    info = [time_format.format(time.time()  - time_begin)]
+    pressure_precision = int(settings.loc["pressure precision"][0])
+    pressure_format = "{0:." + str(pressure_precision) + "f}"
     info.extend([pressure_format.format(float(i)) for i in pressures])
 
     df.loc[0] = info
     return df
 
-def loop(timer, plan, commands, data, stage):
+def loop(settings, timer, time_begin, plan, commands, data, stage):
     """
     Цикл программы по считыванию данных с http-сервера.
 
     Параметры:
+    settings - файл с настройками. Тип - pandas.DataFrame.
     timer - таймер текущего этапа. Тип - threading.Timer.
-    plan - файл конфигурации в развернутом виде. Тип - pandas.DataFrame.
+    time_begin - время начала исполнения программы. Тип - float.
+    plan - файл плана в развернутом виде. Тип - pandas.DataFrame.
     commands - DataFrame с командами. Тип - pandas.DataFrame.
     data - DataFrame с временем и показаниями датчиков. Тип - pandas.DataFrame.
     stage - текущий этап в последовательности команд. Тип - int.
     """
 
     # Получение данных давления с заданной частотой
-    info = get_info()
+    info = get_info(settings, time_begin)
     print("\t".join(str(value) for value in info.iloc[0]))
     data = data.append(info, ignore_index=True) # Информация с датчиков
 
@@ -166,27 +215,29 @@ def loop(timer, plan, commands, data, stage):
         channel = plan.iloc[stage]["Channel"]
         pressure = float(plan.iloc[stage]["Pressure"])
         if pressure >= data.iloc[-1][channel]:
-            sequence(timer, plan, commands, stage)
+            sequence(settings, timer, plan, commands, stage)
 
     # Продолжение работы таймера, если не поступил код завершения
     if stage != -1:
-        t = Timer(SAMPLE_RATE, loop, args=[timer, plan, commands, data, stage])
+        arguments = [settings, timer, time_begin, plan, commands, data, stage]
+        t = Timer(float(settings.loc["sample rate"][0]), loop, args=arguments)
         t.start()
 
-def process(signal, commands):
+def process(settings, signal, commands):
     """
     Обработка команд.
 
     Параметры:
+    settings - файл с настройками. Тип - pandas.DataFrame.
     signal - текущий этап. Тип - pandas.DataFrame.
     commands - DataFrame с командами. Тип - pandas.DataFrame.
     """
     # ЗАКРЫТИЕ ВСЕХ РЕЛЕ
-    send(command("1" * 10, OFF))
+    send(settings.loc["ip"][0], command("1" * 10, settings.loc["off"][0]))
 
     # Строка, посылаемая серверу в качестве сигнала
     signal_str = ""
-    # Проверка наличия команды из файла конфигурации в файле с командами
+    # Проверка наличия команды из файла плана в файле с командами
     if signal["Action"] in commands.index:
         # ФОРМИРОВАНИЕ СИГНАЛА
         # Получение строки-сигнала в бинарном виде (тип str)
@@ -194,8 +245,8 @@ def process(signal, commands):
 
         # Добавление модификаторов (медленный поток, проточная система и т.д.)
         for command in commands:
-            # Если команда - модификатор и в файле конфигурации, то бинарно
-            # сложить строку-сигнал и модификатор
+            # Если команда - модификатор и присутствует в файле плана, то
+            # бинарно сложить строку-сигнал и модификатор
             if command["Modifier"] == "Yes":
                 if command in signal["Type"]:
                     # Преобразование строки-сигнала в int
@@ -210,15 +261,16 @@ def process(signal, commands):
                     signal_int = zeros + signal_int
 
         # ОТПРАВКА СИГНАЛА НА СЕРВЕР
-        send(command(signal_str, ON))
+        send(settings.loc["ip"][0], command(signal_str, settings.loc["on"][0]))
 
-def sequence(timer, plan, commands, stage):
+def sequence(settings, timer, plan, commands, stage):
     """
     Цикл программы по выполнению последовательности команд.
 
     Параметры:
+    settings - файл с настройками. Тип - pandas.DataFrame.
     timer - таймер текущего этапа. Тип - threading.Timer.
-    plan - файл конфигурации в развернутом виде. Тип - pandas.DataFrame.
+    plan - файл плана в развернутом виде. Тип - pandas.DataFrame.
     commands - DataFrame с командами. Тип - pandas.DataFrame.
     stage - текущий этап в последовательности команд. Тип - int.
     """
@@ -229,10 +281,10 @@ def sequence(timer, plan, commands, stage):
     # цикл
     if stage < len(plan):
         # Выполнить обработку команд
-        process(plan.iloc[stage], commands)
+        process(settings, plan.iloc[stage], commands)
         # Начать этап
         duration = plan.iloc[current_stage]["Duration"]
-        arguments = [timer, plan, commands, stage + 1]
+        arguments = [settings, timer, plan, commands, stage + 1]
         timer = Timer(duration, sequence, args=arguments)
         timer.start()
     else:
@@ -245,23 +297,30 @@ def main():
     Главная функция.
     """
     try:
-        # Инициализация DataFrame-ов данных, считывание конфигурации и команд
+        # Время начала исполнения программы
+        time_begin = time.time()
+        # Инициализация DataFrame-ов данных, считывание настроек, плана и команд
         data = pd.DataFrame(columns=["Time", "0", "1", "2", "3", "4", "5"])
-        plan = read_plan(PLAN_NAME)
-        commands = read_commands(COMMANDS_NAME)
+        # (!) Добавить проверку существования файла настроек. Считать
+        # настройки из default_settings и из них создать файл, если файл не
+        # существует
+        settings = read_settings("settings.csv")
+        plan = read_plan(settings.loc["plan"][0])
+        commands = read_commands(settings.loc["commands"][0])
 
         # Инициализация текущего этапа измерений
         stage = 0
 
         # Инициализация таймера цикла для выполнения последовательности команд
-        timer = Timer(100, sequence, args=[plan, commands, stage])
+        arguments = [settings, timer, plan, commands, stage]
+        timer = Timer(100, sequence, args=arguments)
         # Запуск цикла выполнения последовательности команд
-        sequence(timer, plan, commands, stage)
+        sequence(settings, timer, plan, commands, stage)
         # Запуск цикла по считыванию данных с http-сервера
-        loop(timer, plan, commands, data, stage)
+        loop(settings, timer, time_begin, plan, commands, data, stage)
     finally:
         # (!) Сохранить данные в папки "Протоколы измерений", "Давления" с
-        # именами "PROTOCOL_NAME" и "PRESSURES_NAME"
+        # именами settings.loc["protocol"][0] и settings.loc["pressures"][0]
         pass
 
 main()
