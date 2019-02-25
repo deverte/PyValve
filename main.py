@@ -10,17 +10,16 @@ from threading import Timer
 TODO:
 1. Выполнить рефакторинг (изменить названия переменных и функций для лучшей
 читаемости кода).
-2. Переименовать "config" в "plan".
-3. Поместить КОНСТАНТЫ в файл конфигурации.
-4. Разделить файл на модули.
-5. Учесть (!).
-6. Обработать исключения.
-7. Добавить проверку доступа к http-серверу.
-8. Сделать графический интерфейс.
-9. Добавить репозиторий на GitHub с подробным описанием.
+2. Поместить КОНСТАНТЫ в файл конфигурации.
+3. Разделить файл на модули.
+4. Учесть (!).
+5. Обработать исключения.
+6. Добавить проверку доступа к http-серверу.
+7. Сделать графический интерфейс.
+8. Добавить репозиторий на GitHub с подробным описанием.
 """
 
-CONFIG_NAME = "config.csv"
+PLAN_NAME = "plan.csv"
 COMMANDS_NAME = "commands.csv"
 
 PROTOCOL_NAME = "protocol.csv"
@@ -38,41 +37,41 @@ SAMPLE_RATE = 0.25
 TIME_PRECISION = 3
 PRESSURE_PRECISION = 3
 
-def read_config(config_name):
+def read_plan(plan_name):
     """
     Считывает файл конфигурации и преобразует его в развернутый вид. То есть,
     если есть повторения (repeat), то разворачивает тело данного цикла в
     последовательность команд заданное количество раз.
 
     Параметры:
-    config_name - имя файла конфигурации. Тип - string.
+    plan_name - имя файла конфигурации. Тип - string.
 
     Возвращает DataFrame файла конфигурации в развернутом виде.
     Тип - pandas.DataFrame.
     """
     # Получение пути для файла конфигурации (временная проблема с путями)
     # (!) Добавить проверку существования файла
-    #config_path = os.path.join(os.getcwd(), "Config.csv")
-    #config_path = os.path.join(os.getcwd(), "pyvm", config_name)
-    config_path = os.path.join(os.getcwd(), config_name)
+    #plan_path = os.path.join(os.getcwd(), "plan.csv")
+    #plan_path = os.path.join(os.getcwd(), "pyvm", plan_name)
+    plan_path = os.path.join(os.getcwd(), plan_name)
 
     # Считывание файла конфигруации и создание его развернутой версии
-    initial_config = pd.read_csv(config_path, sep=";")
-    expanded_config = pd.DataFrame(columns=initial_config.columns)
+    initial_plan = pd.read_csv(plan_path, sep=";")
+    expanded_plan = pd.DataFrame(columns=initial_plan.columns)
 
     last_repeat = 0
-    for i in range(len(initial_config)):
+    for i in range(len(initial_plan)):
         # Обработка повторений (repeat)
-        if initial_config.iloc[i]["Action"] == "repeat":
-            number = int(initial_config.iloc[i]["Type"])
+        if initial_plan.iloc[i]["Action"] == "repeat":
+            number = int(initial_plan.iloc[i]["Type"])
             for j in range(number - 1):
-                expanded_config = expanded_config.append(initial_config[last_repeat:i], ignore_index=True)
+                expanded_plan = expanded_plan.append(initial_plan[last_repeat:i], ignore_index=True)
             last_repeat = i + 1
         # Добавление строк с обыкновенными командами (не repeat)
         else:
-            expanded_config = expanded_config.append(initial_config.iloc[i], ignore_index=True)
+            expanded_plan = expanded_plan.append(initial_plan.iloc[i], ignore_index=True)
 
-    return expanded_config
+    return expanded_plan
 
 def read_commands(COMMANDS_NAME):
     """
@@ -85,7 +84,7 @@ def read_commands(COMMANDS_NAME):
     """
     # Получение пути для файла конфигурации (временная проблема с путями)
     # (!) Добавить проверку существования файла
-    #config_path = os.path.join(os.getcwd(), "Config.csv")
+    #plan_path = os.path.join(os.getcwd(), "plan.csv")
     #comands_path = os.path.join(os.getcwd(), "pyvm", COMMANDS_NAME)
     comands_path = os.path.join(os.getcwd(), COMMANDS_NAME)
 
@@ -144,13 +143,13 @@ def get_info():
     df.loc[0] = info
     return df
 
-def loop(timer, config, commands, data, stage):
+def loop(timer, plan, commands, data, stage):
     """
     Цикл программы по считыванию данных с http-сервера.
 
     Параметры:
     timer - таймер текущего этапа. Тип - threading.Timer.
-    config - файл конфигурации в развернутом виде. Тип - pandas.DataFrame.
+    plan - файл конфигурации в развернутом виде. Тип - pandas.DataFrame.
     commands - DataFrame с командами. Тип - pandas.DataFrame.
     data - DataFrame с временем и показаниями датчиков. Тип - pandas.DataFrame.
     stage - текущий этап в последовательности команд. Тип - int.
@@ -163,15 +162,15 @@ def loop(timer, config, commands, data, stage):
 
     # Если приоритет работы этапа - давление, то выполнение проверки превышения
     # давления. Если проверка пройдена, то перейти к следующему этапу
-    if config.iloc[stage]["Priority"] == "p":
-        channel = config.iloc[stage]["Channel"]
-        pressure = float(config.iloc[stage]["Pressure"])
+    if plan.iloc[stage]["Priority"] == "p":
+        channel = plan.iloc[stage]["Channel"]
+        pressure = float(plan.iloc[stage]["Pressure"])
         if pressure >= data.iloc[-1][channel]:
-            sequence(timer, config, commands, stage)
+            sequence(timer, plan, commands, stage)
 
     # Продолжение работы таймера, если не поступил код завершения
     if stage != -1:
-        t = Timer(SAMPLE_RATE, loop, args=[timer, config, commands, data, stage])
+        t = Timer(SAMPLE_RATE, loop, args=[timer, plan, commands, data, stage])
         t.start()
 
 def process(signal, commands):
@@ -213,13 +212,13 @@ def process(signal, commands):
         # ОТПРАВКА СИГНАЛА НА СЕРВЕР
         send(command(signal_str, ON))
 
-def sequence(timer, config, commands, stage):
+def sequence(timer, plan, commands, stage):
     """
     Цикл программы по выполнению последовательности команд.
 
     Параметры:
     timer - таймер текущего этапа. Тип - threading.Timer.
-    config - файл конфигурации в развернутом виде. Тип - pandas.DataFrame.
+    plan - файл конфигурации в развернутом виде. Тип - pandas.DataFrame.
     commands - DataFrame с командами. Тип - pandas.DataFrame.
     stage - текущий этап в последовательности команд. Тип - int.
     """
@@ -228,12 +227,12 @@ def sequence(timer, config, commands, stage):
     # Если номер текущего этапа меньше, чем количество этапов, то начать этот
     # этап и выполнить обработку команд. Иначе - закрыть все реле и завершить
     # цикл
-    if stage < len(config):
+    if stage < len(plan):
         # Выполнить обработку команд
-        process(config.iloc[stage], commands)
+        process(plan.iloc[stage], commands)
         # Начать этап
-        duration = config.iloc[current_stage]["Duration"]
-        arguments = [timer, config, commands, stage + 1]
+        duration = plan.iloc[current_stage]["Duration"]
+        arguments = [timer, plan, commands, stage + 1]
         timer = Timer(duration, sequence, args=arguments)
         timer.start()
     else:
@@ -248,18 +247,18 @@ def main():
     try:
         # Инициализация DataFrame-ов данных, считывание конфигурации и команд
         data = pd.DataFrame(columns=["Time", "0", "1", "2", "3", "4", "5"])
-        config = read_config(CONFIG_NAME)
+        plan = read_plan(PLAN_NAME)
         commands = read_commands(COMMANDS_NAME)
 
         # Инициализация текущего этапа измерений
         stage = 0
 
         # Инициализация таймера цикла для выполнения последовательности команд
-        timer = Timer(100, sequence, args=[config, commands, stage])
+        timer = Timer(100, sequence, args=[plan, commands, stage])
         # Запуск цикла выполнения последовательности команд
-        sequence(timer, config, commands, stage)
+        sequence(timer, plan, commands, stage)
         # Запуск цикла по считыванию данных с http-сервера
-        loop(timer, config, commands, data, stage)
+        loop(timer, plan, commands, data, stage)
     finally:
         # (!) Сохранить данные в папки "Протоколы измерений", "Давления" с
         # именами "PROTOCOL_NAME" и "PRESSURES_NAME"
