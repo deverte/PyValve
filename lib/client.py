@@ -1,4 +1,5 @@
 import re
+import time
 import requests
 import pandas as pd
 
@@ -52,7 +53,8 @@ def process(settings, signal, commands):
     on = settings.loc["on"][0]
     off = settings.loc["off"][0]
     # ЗАКРЫТИЕ ВСЕХ РЕЛЕ
-    send(settings.loc["ip"][0], command("1" * 10, off))
+    print("/".join([settings.loc["ip"][0], command("1" * 10, off)]))
+    #send(settings.loc["ip"][0], command("1" * 10, off))
 
     # Строка, посылаемая серверу в качестве сигнала
     signal_str = ""
@@ -63,11 +65,11 @@ def process(settings, signal, commands):
         signal_str = commands.loc[signal["Action"]]["Signal"]
 
         # Добавление модификаторов (медленный поток, проточная система и т.д.)
-        for cmd in commands:
+        for cmd in commands["Modifier"]:
             # Если команда - модификатор и присутствует в файле плана, то
             # бинарно сложить строку-сигнал и модификатор
-            if cmd["Modifier"] == "Yes":
-                if cmd in signal["Type"]:
+            if cmd == "Yes":
+                if cmd in str(signal["Type"]):
                     # Преобразование строки-сигнала в int
                     signal_int = int(signal_str, 2)
                     # Преобразование строки-модификатора в int
@@ -80,7 +82,8 @@ def process(settings, signal, commands):
                     signal_int = zeros + signal_int
 
         # ОТПРАВКА СИГНАЛА НА СЕРВЕР
-        send(settings.loc["ip"][0], command(signal_str, on))
+        #send(settings.loc["ip"][0], command(signal_str, on))
+        print("/".join([settings.loc["ip"][0], command(signal_str, on)]))
 
 def command(signal, state):
     """
@@ -93,7 +96,7 @@ def command(signal, state):
 
     Возвращает команду, понятную серверу - тип: String.
     """
-    return "_".join("/", signal, state, "SETRELAY")
+    return "_".join([signal, state, "SETRELAY"])
 
 def send(ip, cmd):
     """
@@ -104,4 +107,4 @@ def send(ip, cmd):
     cmd - команда, посылаемая серверу. Тип - str.
     """
     # (!) Добавить обработку ошибок подключения и т.д.
-    response = requests.get("/".join(ip, cmd))
+    response = requests.get("/".join([ip, cmd]))

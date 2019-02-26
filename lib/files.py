@@ -82,7 +82,8 @@ def read_plan(plan_name):
     plan_path = os.path.join(os.getcwd(), plan_name)
 
     # Считывание файла конфигруации и создание его развернутой версии
-    initial_plan = pd.read_csv(plan_path, sep=";")
+    # (!) Возможно, нужно будет изменить разделитель (sep) на ";"
+    initial_plan = pd.read_csv(plan_path, sep=",")
     expanded_plan = pd.DataFrame(columns=initial_plan.columns)
 
     last_repeat = 0
