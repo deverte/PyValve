@@ -19,27 +19,29 @@ def get_info(settings, time_begin):
     Возвращает время и показания датчиков - тип pandas.DataFrame.
     """
     # Получение страницы с данными
-    response = requests.get(settings.loc["ip"][0])
-    file = response.content
-    #file = open("/home/deverte/Projects/Sorption/Automation/deverte/192.168.1.54.html", "r")
+    # <DEBUG>
+    file = open("/home/deverte/Projects/Sorption/Automation/deverte/192.168.1.54.html", "r")
+    # <RELEASE>
+    #response = requests.get(settings.loc["ip"][0])
+    #file = response.content
 
     # Парсинг страницы, получение давлений
     template = r"(?<=Pressure\dCalibrated:\s)([+-]?\d+[.]\d+)"
     pressures = re.findall(template, file.read())
 
-    # Создание pandas.DataFrame
-    df = pd.DataFrame(columns=["Time", "0", "1", "2", "3", "4", "5"])
-
     # Создание списка из времени и давлений
     time_precision = int(settings.loc["time precision"][0])
     time_format = "{0:." + str(time_precision) + "f}"
-    info = [time_format.format(time.time()  - time_begin)]
+    t = time_format.format(time.time()  - time_begin)
+
     pressure_precision = int(settings.loc["pressure precision"][0])
     pressure_format = "{0:." + str(pressure_precision) + "f}"
-    info.extend([pressure_format.format(float(i)) for i in pressures])
 
-    df.loc[0] = info
-    return df
+    # Создание pandas.DataFrame
+    info = pd.DataFrame(columns=["0", "1", "2", "3", "4", "5"])
+    info.loc[t] = [pressure_format.format(float(i)) for i in pressures]
+
+    return info
 
 def process(settings, signal, commands):
     """
@@ -52,9 +54,6 @@ def process(settings, signal, commands):
     """
     on = settings.loc["on"][0]
     off = settings.loc["off"][0]
-    # ЗАКРЫТИЕ ВСЕХ РЕЛЕ
-    print("/".join([settings.loc["ip"][0], command("1" * 10, off)]))
-    #send(settings.loc["ip"][0], command("1" * 10, off))
 
     # Строка, посылаемая серверу в качестве сигнала
     signal_str = ""
@@ -65,11 +64,11 @@ def process(settings, signal, commands):
         signal_str = commands.loc[signal["Action"]]["Signal"]
 
         # Добавление модификаторов (медленный поток, проточная система и т.д.)
-        for cmd in commands["Modifier"]:
+        for index, cmd in commands.iterrows():
             # Если команда - модификатор и присутствует в файле плана, то
             # бинарно сложить строку-сигнал и модификатор
-            if cmd == "Yes":
-                if cmd in str(signal["Type"]):
+            if str(cmd["Modifier"]) == "Yes":
+                if index in str(signal["Type"]):
                     # Преобразование строки-сигнала в int
                     signal_int = int(signal_str, 2)
                     # Преобразование строки-модификатора в int
@@ -79,11 +78,18 @@ def process(settings, signal, commands):
                     # Добавление нулей в начало (для корректного формирования
                     # сигнала)
                     zeros = "0" * (len(signal_str) - len(signal_int))
-                    signal_int = zeros + signal_int
+                    signal_str = zeros + signal_int
 
-        # ОТПРАВКА СИГНАЛА НА СЕРВЕР
-        #send(settings.loc["ip"][0], command(signal_str, on))
+        # <DEBUG>
+        # Закрытие всех реле
+        print("/".join([settings.loc["ip"][0], command("1" * 10, off)]))
+        # Отправка сигнала на сервер
         print("/".join([settings.loc["ip"][0], command(signal_str, on)]))
+        # <RELEASE>
+        # Закрытие всех реле
+        #send(settings.loc["ip"][0], command("1" * 10, off))
+        # Отправка сигнала на сервер
+        #send(settings.loc["ip"][0], command(signal_str, on))
 
 def command(signal, state):
     """

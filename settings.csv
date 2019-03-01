@@ -1,5 +1,5 @@
 ﻿Settings,Values
-SERVER,
+SERVER
 ip,http://192.168.1.54
 on,1
 off,0
@@ -7,9 +7,9 @@ INPUT FILES
 plan,plan.csv
 commands,commands.csv
 OUTPUT FILES
-potocol,protocol.csv
-pressures,pressures.csv
-RECORDING,
+protocol,protocols/pr/pr/protocol.csv
+pressures,pressures/pr/pr/pressures.csv
+RECORDING
 sample rate,0.25
 time precision,3
 pressure precision,3

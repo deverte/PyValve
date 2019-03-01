@@ -29,9 +29,6 @@ class Supervisor:
         """
         # Время начала исполнения программы
         self.time_begin = time.time()
-        # Инициализация DataFrame-ов данных и протокола
-        self.data = pd.DataFrame(columns=["Time", "0", "1", "2", "3", "4", "5"])
-        self.protocol = pd.DataFrame(columns=["Action", "Type", "Begin"])
         # Считывание настроек, плана и команд
         # (!) Добавить проверку существования файла настроек. Считать
         # настройки из default_settings и из них создать файл, если файл не
@@ -39,6 +36,17 @@ class Supervisor:
         self.settings = files.read_settings("settings.csv")
         self.plan = files.read_plan(self.settings.loc["plan"][0])
         self.commands = files.read_commands(self.settings.loc["commands"][0])
+
+        # Инициализация DataFrame-ов данных и протокола
+        data = pd.DataFrame(columns=["0", "1", "2", "3", "4", "5"])
+        data.loc["Time"] = ["0", "1", "2", "3", "4", "5"]
+        protocol_cols = ["Type", "Begin", "Priority", "Pressure", "Channel"]
+        protocol = pd.DataFrame(columns=protocol_cols)
+        protocol.loc["Action"] = protocol_cols
+
+        # Запись заголовков файлов
+        files.write_header(data, self.settings.loc["pressures"][0])
+        files.write_header(protocol, self.settings.loc["protocol"][0])
 
         # Инициализация текущего этапа измерений
         self.stage = 0 # Первый этап
@@ -57,7 +65,7 @@ class Supervisor:
         # Запуск цикла выполнения последовательности команд
         self.sequence()
         # Запуск цикла по считыванию данных с http-сервера
-        #self.loop()
+        self.loop()
 
     def sequence(self):
         """
@@ -80,13 +88,36 @@ class Supervisor:
             # Выполнить обработку команд
             client.process(settings, plan.iloc[self.stage], commands)
 
-            # Сделать запись в протокол
-            record = pd.DataFrame(columns=["Action", "Type", "Begin"])
+            # Добавить запись в протокол
+            protocol_cols = ["Type", "Begin", "Priority", "Pressure", "Channel"]
+            record = pd.DataFrame(columns=protocol_cols)
+            # Действие
             action = plan.iloc[self.stage]["Action"]
+            # Тип
             type = plan.iloc[self.stage]["Type"]
-            begin = time.time()  - time_begin
-            record.loc[0] = [action, type, begin]
-            self.protocol = self.protocol.append(record, ignore_index=True)
+            # Время
+            time_precision = int(settings.loc["time precision"][0])
+            time_format = "{0:." + str(time_precision) + "f}"
+            begin = time_format.format(time.time()  - time_begin)
+            # Приоритет
+            priority = str(plan.iloc[self.stage]["Priority"])
+            if priority == "p":
+                priority = "Pressure"
+            elif priority == "t" or priority == str(float('nan')):
+                priority = "Time"
+            # Давление
+            pressure = str(plan.iloc[self.stage]["Pressure"])
+            if pressure == str(float('nan')):
+                pressure = "-"
+            # Канал
+            channel = str(plan.iloc[self.stage]["Channel"])
+            if channel == str(float('nan')):
+                channel = "-"
+            # Формирование записи
+            record.loc[action] = [type, begin, priority, pressure, channel]
+            #self.protocol = self.protocol.append(record, ignore_index=True)
+            # Добавить запись в файл протокола
+            record.to_csv(self.settings.loc["protocol"][0], header=False, mode="a")
 
             # Запустить таймер
             duration = plan.iloc[self.stage]["Duration"]
@@ -124,12 +155,17 @@ class Supervisor:
 
             # Получение данных давления
             info = client.get_info(settings, time_begin)
-            print("\t".join(str(value) for value in info.iloc[0]))
-            self.data = self.data.append(info, ignore_index=True)
+            # <CONSOLE>
+            pressures_str = "\t".join(str(value) for value in info.iloc[0])
+            info_str = "\t".join([info.index[0], pressures_str])
+            print(info_str)
+            #self.data = self.data.append(info, ignore_index=True)
+            # Добавить запись в файл данных
+            info.to_csv(self.settings.loc["pressures"][0], header=False, mode="a")
 
             # Если приоритет работы этапа - давление, то выполнение проверки превышения
             # давления. Если проверка пройдена, то перейти к следующему этапу
-            if plan.iloc[stage]["Priority"] == "p":
+            if str(plan.iloc[stage]["Priority"]) == "p":
                 channel = plan.iloc[stage]["Channel"]
                 pressure = float(plan.iloc[stage]["Pressure"])
                 # Корректное сравнение float c заданной точностью pp
@@ -142,14 +178,8 @@ def main():
     """
     Главная функция.
     """
-    try:
-        super = Supervisor()
-        super.start()
-    finally:
-        # (!) Сохранить данные в папки "Протоколы измерений", "Давления" с
-        # именами settings.loc["protocol"][0] и settings.loc["pressures"][0]
-
-        pass
+    super = Supervisor()
+    super.start()
 
 if __name__ == '__main__':
     main()

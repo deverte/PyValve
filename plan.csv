@@ -1,14 +1,14 @@
-﻿Action,Type,Pressure,Duration,Priority
-delay,,,0:00:10
-delay,,,0:00:11
-delay,,,0:00:12
-delay,,,0:00:13
-delay,,,0:00:14
-delay,,,0:00:15
-delay,,,0:00:16
-delay,,,0:00:17
-delay,,,0:00:18
-delay,,,0:00:19
-delay,,,0:00:20
-delay,,,0:00:21
+﻿Action,Type,Duration,Priority,Pressure,Channel
+O2,,0:00:10,,,
+O2,flow,0:00:10,,,
+O2,flow+slow,0:00:10,,,
+
+
+
+
+
+
+
+
+
 

@@ -123,3 +123,40 @@ def read_commands(commands_name):
                           dtype={'Command': str, 'Signal': str, 'Modifier': str})
 
     return commands
+
+def write_header(header, name):
+    """
+    Записывает заголовок файла. Если файл существует, добавляет "_i" перед
+    расширением файла, где i - номер первого не повторяющегося имени файла с
+    таким же форматом имени (Например, существуют файлы "data.csv",
+    "data_1.csv". Тогда функция создаст файл с именем "data_2.csv").
+
+    Параметры:
+    header - таблица, которую нужно записать. Тип - pandas.DataFrame.
+    name - Соответствующее имя файла из файла настроек.
+    """
+    # Создание форматов для строк файлов
+    pure_format = "{}{}"
+    format = "{}_{}{}"
+    # Учет расширения файла (если есть)
+    dot_index = name.rfind(".")
+    extension = ""
+    if dot_index != -1:
+        extension = name[dot_index:]
+        name = name[:dot_index]
+    # Инициализация "чистого" пути (по файлу настроек)
+    path = os.path.join(os.getcwd(), pure_format.format(name, extension))
+    # Создание дополнительных директорий (если нужно)
+    os.makedirs(os.path.join(os.getcwd(), os.path.split(path)[0]), exist_ok=True)
+    # Если файл существует, то проверить, существует ли файл "file_i.ext",
+    # (file - имя директории + имя файла без расширения, i - итератор по
+    # одинаковым именам файлов, ext - расширение файла).
+    # [Первая проверка осуществляется без учета i]
+    i = 1
+    while True:
+        if os.path.exists(path):
+            path = os.path.join(os.getcwd(), format.format(name, str(i), extension))
+            i += 1
+        else:
+            break
+    header.to_csv(path, header=False)
