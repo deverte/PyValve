@@ -30,23 +30,33 @@ class Supervisor:
         # Время начала исполнения программы
         self.time_begin = time.time()
         # Считывание настроек, плана и команд
-        # (!) Добавить проверку существования файла настроек. Считать
-        # настройки из default_settings и из них создать файл, если файл не
-        # существует
-        self.settings = files.read_settings("settings.csv")
+        # Проверка существования файла настроек. Если файл не существует, то
+        # считываются настройки из default_settings и из них создается файл
+        if not os.path.exists(os.path.join(os.getcwd(), "settings.csv")):
+            self.settings = files.default_settings()
+            self.settings.to_csv("settings.csv")
+        else:
+            self.settings = files.read_settings("settings.csv")
+        # Получение доступных путей для выходных файлов давлений и протокола
+        pressures_name = self.settings.loc["pressures"][0]
+        self.settings.loc["pressures"][0] = files.get_available_path(pressures_name)
+        protocol_name = self.settings.loc["protocol"][0]
+        self.settings.loc["protocol"][0] = files.get_available_path(protocol_name)
+
+        # Считывание плана и команд
         self.plan = files.read_plan(self.settings.loc["plan"][0])
         self.commands = files.read_commands(self.settings.loc["commands"][0])
 
         # Инициализация DataFrame-ов данных и протокола
-        data = pd.DataFrame(columns=["0", "1", "2", "3", "4", "5"])
-        data.loc["Time"] = ["0", "1", "2", "3", "4", "5"]
-        protocol_cols = ["Type", "Begin", "Priority", "Pressure", "Channel"]
+        data = pd.DataFrame(columns=["Time", "0", "1", "2", "3", "4", "5"])
+        data = data.set_index("Time")
+        protocol_cols = ["Action", "Type", "Begin", "Priority", "Pressure", "Channel"]
         protocol = pd.DataFrame(columns=protocol_cols)
-        protocol.loc["Action"] = protocol_cols
+        protocol = protocol.set_index("Action")
 
-        # Запись заголовков файлов
-        files.write_header(data, self.settings.loc["pressures"][0])
-        files.write_header(protocol, self.settings.loc["protocol"][0])
+        # Запись заголовков файлов давлений и протокола
+        data.to_csv(self.settings.loc["pressures"][0])
+        protocol.to_csv(self.settings.loc["protocol"][0])
 
         # Инициализация текущего этапа измерений
         self.stage = 0 # Первый этап
@@ -89,8 +99,11 @@ class Supervisor:
             client.process(settings, plan.iloc[self.stage], commands)
 
             # Добавить запись в протокол
-            protocol_cols = ["Type", "Begin", "Priority", "Pressure", "Channel"]
+            protocol_cols = ["Action", "Type",
+                             "Begin", "Priority",
+                             "Pressure", "Channel"]
             record = pd.DataFrame(columns=protocol_cols)
+            record = record.set_index("Action")
             # Действие
             action = plan.iloc[self.stage]["Action"]
             # Тип
@@ -115,7 +128,6 @@ class Supervisor:
                 channel = "-"
             # Формирование записи
             record.loc[action] = [type, begin, priority, pressure, channel]
-            #self.protocol = self.protocol.append(record, ignore_index=True)
             # Добавить запись в файл протокола
             record.to_csv(self.settings.loc["protocol"][0], header=False, mode="a")
 

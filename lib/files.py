@@ -32,13 +32,14 @@ def default_settings():
                            'plan.csv',
                            'commands.csv',
                            float('nan'),
-                           'protocol.csv',
-                           'pressures.csv',
+                           'protocols/protocol.csv',
+                           'pressures/pressures.csv',
                            float('nan'),
                            '0.25',
                            '3',
                            '3']}
     settings = pd.DataFrame.from_dict(settings)
+    settings = settings.set_index("Settings")
     return settings
 
 def read_settings(settings_name):
@@ -124,18 +125,20 @@ def read_commands(commands_name):
 
     return commands
 
-def write_header(header, name):
+def get_available_path(name):
     """
-    Записывает заголовок файла. Если файл существует, добавляет "_i" перед
-    расширением файла, где i - номер первого не повторяющегося имени файла с
-    таким же форматом имени (Например, существуют файлы "data.csv",
-    "data_1.csv". Тогда функция создаст файл с именем "data_2.csv").
+    Получает доступный путь для файла с заданным именем. Если файл существует,
+    добавляет "_i" перед расширением файла, где i - номер первого не
+    повторяющегося имени файла с таким же форматом имени. Например, если
+    существуют файлы "data.csv", "data_1.csv", то функция вернет путь для файла
+    с именем "data_2.csv".
 
     Параметры:
-    header - таблица, которую нужно записать. Тип - pandas.DataFrame.
-    name - Соответствующее имя файла из файла настроек.
+    name - соответствующее имя файла. Тип - str.
+
+    Возвращает доступный путь для файла с заданным именем. Тип - str.
     """
-    # Создание форматов для строк файлов
+    # Создание форматов для путей файлов
     pure_format = "{}{}"
     format = "{}_{}{}"
     # Учет расширения файла (если есть)
@@ -159,4 +162,4 @@ def write_header(header, name):
             i += 1
         else:
             break
-    header.to_csv(path, header=False)
+    return path

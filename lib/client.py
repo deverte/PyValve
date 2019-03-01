@@ -38,7 +38,8 @@ def get_info(settings, time_begin):
     pressure_format = "{0:." + str(pressure_precision) + "f}"
 
     # Создание pandas.DataFrame
-    info = pd.DataFrame(columns=["0", "1", "2", "3", "4", "5"])
+    info = pd.DataFrame(columns=["Time", "0", "1", "2", "3", "4", "5"])
+    info = info.set_index("Time")
     info.loc[t] = [pressure_format.format(float(i)) for i in pressures]
 
     return info
