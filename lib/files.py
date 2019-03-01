@@ -1,4 +1,5 @@
 import os
+import sys
 import pandas as pd
 
 """
@@ -42,26 +43,26 @@ def default_settings():
     settings = settings.set_index("Settings")
     return settings
 
-def read_settings(settings_name):
+def read_settings(settings_name="settings.csv"):
     """
     Считывает файл с настройками.
 
     Параметры:
-    settings_name - имя файла с настройками. Тип - string.
+    settings_name - имя файла с настройками. Тип - str.
 
     Возвращает DataFrame с настройками. Тип - pandas.DataFrame.
     """
-    # Получение пути для файла настроек (временная проблема с путями)
-    # (!) Добавить проверку существования файла
-    #settings_path = os.path.join(os.getcwd(), "plan.csv")
-    #settings_path = os.path.join(os.getcwd(), "pyvm", settings_name)
+    # Проверка существования файла настроек. Если файл не существует, то
+    # считываются настройки из default_settings и из них создается файл.
+    # Получение пути для файла настроек
     settings_path = os.path.join(os.getcwd(), settings_name)
-
-    # Считывание файла с командами
-    # (!) Возможно, нужно будет изменить разделитель (sep) на ";"
-    settings = pd.read_csv(settings_path, sep=",", index_col=0,
-                          dtype={'Settings': str, 'Values': str})
-
+    if not os.path.exists(settings_path):
+        settings = default_settings()
+        settings.to_csv("settings.csv")
+    else:
+        # (!) Возможно, нужно будет изменить разделитель (sep) на ";"
+        settings = pd.read_csv(settings_path, sep=",", index_col=0,
+                               dtype={'Settings': str, 'Values': str})
     return settings
 
 def read_plan(plan_name):
@@ -71,16 +72,16 @@ def read_plan(plan_name):
     последовательность команд заданное количество раз.
 
     Параметры:
-    plan_name - имя файла плана. Тип - string.
+    plan_name - имя файла плана. Тип - str.
 
     Возвращает DataFrame файла плана в развернутом виде.
     Тип - pandas.DataFrame.
     """
-    # Получение пути для файла плана (временная проблема с путями)
-    # (!) Добавить проверку существования файла
-    #plan_path = os.path.join(os.getcwd(), "plan.csv")
-    #plan_path = os.path.join(os.getcwd(), "pyvm", plan_name)
+    # Получение пути для файла плана
     plan_path = os.path.join(os.getcwd(), plan_name)
+    if not os.path.exists(plan_path):
+        print("Plan file \"" + plan_name + "\" does not exist!")
+        sys.exit()
 
     # Считывание файла конфигруации и создание его развернутой версии
     # (!) Возможно, нужно будет изменить разделитель (sep) на ";"
@@ -113,10 +114,10 @@ def read_commands(commands_name):
     Возвращает DataFrame с командами. Тип - pandas.DataFrame.
     """
     # Получение пути для файла команд (временная проблема с путями)
-    # (!) Добавить проверку существования файла
-    #plan_path = os.path.join(os.getcwd(), "plan.csv")
-    #commands_path = os.path.join(os.getcwd(), "pyvm", commands_name)
     commands_path = os.path.join(os.getcwd(), commands_name)
+    if not os.path.exists(commands_path):
+        print("Commands file \"" + commands_name + "\" does not exist!")
+        sys.exit()
 
     # Считывание файла с командами
     # (!) Возможно, нужно будет изменить разделитель (sep) на ";"

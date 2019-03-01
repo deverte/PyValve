@@ -5,18 +5,19 @@ import pandas as pd
 from threading import Timer
 from datetime import datetime
 
-sys.path.append(os.path.join(os.getcwd(), "lib"))
-#sys.path.append(os.path.join(os.getcwd(), "pyvm", "lib"))
+if not os.path.exists(os.path.join(os.getcwd(), "lib")):
+    print("Can't find library.")
+    sys.exit()
+else:
+    sys.path.append(os.path.join(os.getcwd(), "lib"))
 import files
 import client
 
 """
 TODO:
 1. Добавить подробное описание на GitHub.
-2. Учесть (!).
-3. Обработать исключения.
-4. Добавить проверку доступа к http-серверу.
-5. Сделать графический интерфейс.
+2. Добавить проверку доступа к http-серверу.
+3. Сделать графический интерфейс.
 """
 
 class Supervisor:
@@ -30,13 +31,7 @@ class Supervisor:
         # Время начала исполнения программы
         self.time_begin = time.time()
         # Считывание настроек, плана и команд
-        # Проверка существования файла настроек. Если файл не существует, то
-        # считываются настройки из default_settings и из них создается файл
-        if not os.path.exists(os.path.join(os.getcwd(), "settings.csv")):
-            self.settings = files.default_settings()
-            self.settings.to_csv("settings.csv")
-        else:
-            self.settings = files.read_settings("settings.csv")
+        self.settings = files.read_settings()
         # Получение доступных путей для выходных файлов давлений и протокола
         pressures_name = self.settings.loc["pressures"][0]
         self.settings.loc["pressures"][0] = files.get_available_path(pressures_name)
