@@ -115,7 +115,7 @@ extended_plan
 | ac3 | t3 |  |
 
 ##### Type
-Тип действия. Если действие "repeat", то в поле "Type" записывается количество повторений (см. [plan/Action/repeat]). Если действие находится в файле команд, то тип - модификатор, или комбинация модификаторов (см. [commands]).
+Тип действия. Если действие "repeat", то в поле "Type" записывается количество повторений (см. [plan/Action]). Если действие находится в файле команд, то тип - модификатор, или комбинация модификаторов (см. [commands]).
 
 Пример 1:
 Даны:
@@ -258,9 +258,9 @@ MIT
    [pressures]: <#pressures>
    [settings]: <#settings>
 
-   [plan/Priority]: <#priority>
-   [plan/Action/repeat]: <>
-   [plan/Pressure]: <>
-   [plan/Channel]: <>
-   [plan/Type]: <>
-   [commands/Signal]: <>
+   [plan/Priority]: <#Priority>
+   [plan/Action]: <#Action>
+   [plan/Pressure]: <#Pressure>
+   [plan/Channel]: <#Channel>
+   [plan/Type]: <#Type>
+   [commands/Signal]: <#Signal>
